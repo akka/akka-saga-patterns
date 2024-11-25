@@ -26,7 +26,7 @@ public class ShowSeatReservationIntegrationTest extends TestKitSupport {
   public void shouldCompleteSeatReservation() {
     //given
     var walletId = randomId();
-    var showId = "show1";
+    var showId = randomId();
     var reservationId = randomId();
     var seatNumber = 10;
 
@@ -50,7 +50,7 @@ public class ShowSeatReservationIntegrationTest extends TestKitSupport {
   public void shouldRejectReservationIfCaseOfInsufficientWalletBalance() {
     //given
     var walletId = randomId();
-    var showId = "show1";
+    var showId = randomId();
     var reservationId = randomId();
     var seatNumber = 11;
 

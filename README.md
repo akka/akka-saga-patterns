@@ -73,7 +73,7 @@ Make reservation
 curl http://localhost:9000/cinema-show/show1/reserve \
   -i -X PATCH \
   --header "Content-Type: application/json" \
-  --data '{"walletId": "1", "reservationId": "123", "seatNumber": 3}'
+  --data '{"walletId": "1", "expenseId": "123", "seatNumber": 3}'
 ```
 
 Verify wallet balance

@@ -12,10 +12,10 @@ public sealed interface WalletEvent {
   }
 
   @TypeName("wallet-charged")
-  record WalletCharged(String walletId, BigDecimal amount, String reservationId) implements WalletEvent {
+  record WalletCharged(String walletId, BigDecimal amount, String expenseId) implements WalletEvent {
   }
 
   @TypeName("wallet-charge-rejected")
-  record WalletChargeRejected(String walletId, String reservationId) implements WalletEvent {
+  record WalletChargeRejected(String walletId, String expenseId) implements WalletEvent {
   }
 }

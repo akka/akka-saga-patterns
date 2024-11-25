@@ -24,8 +24,8 @@ public class ChargeForReservation extends Consumer {
 
   public Effect charge(SeatReserved seatReserved) {
     logger.info("charging for reservation, triggered by {}", seatReserved);
-    String reservationId = seatReserved.reservationId();
-    var chargeWallet = new ChargeWallet(seatReserved.price(), reservationId);
+    String expenseId = seatReserved.reservationId();
+    var chargeWallet = new ChargeWallet(seatReserved.price(), expenseId);
 
     var chargeCall = componentClient.forEventSourcedEntity(seatReserved.walletId())
       .method(WalletEntity::charge)
