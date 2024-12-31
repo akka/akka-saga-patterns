@@ -28,7 +28,7 @@ public class ShowByReservationView extends View {
 
     public Effect<ShowByReservation> onEvent(ShowEvent showEvent) {
       return switch (showEvent) {
-        case ShowCreated created -> effects().updateRow(new ShowByReservation(created.showId(), new ArrayList<>()));
+        case ShowCreated created -> effects().updateRow(new ShowByReservation(created.showId()));
         case SeatReserved reserved -> effects().updateRow(rowState().add(reserved.reservationId()));
         case SeatReservationPaid paid -> effects().updateRow(rowState().remove(paid.reservationId()));
         case SeatReservationCancelled cancelled -> effects().updateRow(rowState().remove(cancelled.reservationId()));

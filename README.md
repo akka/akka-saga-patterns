@@ -46,6 +46,21 @@ Create wallet
 curl -i -X POST http://localhost:9000/wallet/1/create/100  
 ```
 
+Deposit (only 1 request will update the balance, the other will be deduplicated)
+
+```shell
+curl http://localhost:9000/wallet/1/deposit \
+  -i -X PATCH \
+  --header "Content-Type: application/json" \
+  --data '{"amount": 100, "commandId": "12345"}' 
+```  
+```shell
+curl http://localhost:9000/wallet/1/deposit \
+  -i -X PATCH \
+  --header "Content-Type: application/json" \
+  --data '{"amount": 100, "commandId": "12345"}' 
+```
+
 Get wallet
 
 ```shell

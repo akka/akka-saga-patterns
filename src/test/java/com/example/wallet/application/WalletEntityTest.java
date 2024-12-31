@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 
+import static com.example.cinema.domain.DomainGenerators.randomCommandId;
 import static com.example.cinema.domain.DomainGenerators.randomWalletId;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -25,7 +26,7 @@ class WalletEntityTest {
     var walletId = randomWalletId();
     var initialBalance = 100;
     EventSourcedTestKit<Wallet, WalletEvent, WalletEntity> testKit = EventSourcedTestKit.of(walletId, WalletEntity::new);
-    CreateWallet createWallet = new CreateWallet(BigDecimal.valueOf(100));
+    CreateWallet createWallet = new CreateWallet(walletId, BigDecimal.valueOf(100));
 
     //when
     EventSourcedResult<Done> result = testKit.call(wallet -> wallet.create(createWallet));
@@ -43,9 +44,9 @@ class WalletEntityTest {
     //given
     var walletId = randomWalletId();
     EventSourcedTestKit<Wallet, WalletEvent, WalletEntity> testKit = EventSourcedTestKit.of(walletId, WalletEntity::new);
-    CreateWallet createWallet = new CreateWallet(BigDecimal.valueOf(100));
+    CreateWallet createWallet = new CreateWallet(walletId, BigDecimal.valueOf(100));
     testKit.call(wallet -> wallet.create(createWallet));
-    var chargeWallet = new WalletCommand.ChargeWallet(new BigDecimal(10), "r1");
+    var chargeWallet = new WalletCommand.ChargeWallet(new BigDecimal(10), "r1", randomCommandId());
 
     //when
     EventSourcedResult<Done> result = testKit.call(wallet -> wallet.charge(chargeWallet));
@@ -54,8 +55,27 @@ class WalletEntityTest {
     WalletCharged charged = result.getNextEventOfType(WalletCharged.class);
     assertThat(result.isReply()).isTrue();
     assertThat(charged.amount()).isEqualTo(chargeWallet.amount());
-    assertThat(charged.expenseId()).isEqualTo(chargeWallet.reservationId());
+    assertThat(charged.expenseId()).isEqualTo(chargeWallet.expenseId());
 //    assertThat(testKit.getState().id()).isEqualTo(walletId);
+    assertThat(testKit.getState().balance()).isEqualTo(new BigDecimal(90));
+  }
+
+  @Test
+  public void shouldIgnoreChargeDuplicate() {
+    //given
+    var walletId = randomWalletId();
+    EventSourcedTestKit<Wallet, WalletEvent, WalletEntity> testKit = EventSourcedTestKit.of(walletId, WalletEntity::new);
+    CreateWallet createWallet = new CreateWallet(walletId, BigDecimal.valueOf(100));
+    testKit.call(wallet -> wallet.create(createWallet));
+    var chargeWallet = new WalletCommand.ChargeWallet(new BigDecimal(10), "r1", randomCommandId());
+    testKit.call(wallet -> wallet.charge(chargeWallet));
+
+    //when
+    EventSourcedResult<Done> result = testKit.call(wallet -> wallet.charge(chargeWallet));
+
+    //then
+    assertThat(result.isReply()).isTrue();
+    assertThat(result.didEmitEvents()).isFalse();
     assertThat(testKit.getState().balance()).isEqualTo(new BigDecimal(90));
   }
 }

@@ -4,9 +4,17 @@ import java.math.BigDecimal;
 
 public sealed interface WalletCommand {
 
-  record CreateWallet(BigDecimal initialBalance) implements WalletCommand {
+  sealed interface RequiresDeduplicationCommand extends WalletCommand {
+    String commandId();
   }
 
-  record ChargeWallet(BigDecimal amount, String reservationId) implements WalletCommand {
+  record CreateWallet(String walletId, BigDecimal initialBalance) implements WalletCommand {
+  }
+
+  record ChargeWallet(BigDecimal amount, String expenseId,
+                      String commandId) implements RequiresDeduplicationCommand {
+  }
+
+  record DepositFunds(BigDecimal amount, String commandId) implements RequiresDeduplicationCommand {
   }
 }

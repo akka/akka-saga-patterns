@@ -9,6 +9,7 @@ import com.example.cinema.domain.ShowCommand;
 import com.example.cinema.domain.ShowCommand.CancelSeatReservation;
 import com.example.cinema.domain.ShowCommand.ConfirmReservationPayment;
 import com.example.cinema.domain.ShowCommand.ReserveSeat;
+import com.example.cinema.domain.ShowCommandError;
 import com.example.cinema.domain.ShowCreator;
 import com.example.cinema.domain.ShowEvent;
 import com.example.cinema.domain.ShowEvent.ShowCreated;
@@ -17,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static akka.Done.done;
+import static com.example.cinema.domain.ShowCommandError.DUPLICATED_COMMAND;
 
 @ComponentId("show")
 public class ShowEntity extends EventSourcedEntity<Show, ShowEvent> {
@@ -28,56 +30,48 @@ public class ShowEntity extends EventSourcedEntity<Show, ShowEvent> {
       return effects().error("show already exists");
     } else {
       return switch (ShowCreator.create(commandContext().entityId(), createShow)) {
-        case Or.Left(var error) -> effects().error(error.name());
-        case Or.Right(var showCreated) -> effects()
-          .persist(showCreated)
-          .thenReply(__ -> done());
+        case Or.Left(var error) -> errorEffect(error, createShow);
+        case Or.Right(var event) -> persistEffect(event);
       };
     }
   }
 
   public Effect<Done> reserve(ReserveSeat reserveSeat) {
     if (currentState() == null) {
-      return effects().error("show not exists");
+      return effects().error("show does not exists");
     } else {
       return switch (currentState().process(reserveSeat)) {
-        case Or.Left(var error) -> effects().error(error.name());
-        case Or.Right(var showEvent) -> effects()
-          .persist(showEvent)
-          .thenReply(__ -> done());
+        case Or.Left(var error) -> errorEffect(error, reserveSeat);
+        case Or.Right(var event) -> persistEffect(event);
       };
     }
   }
 
   public Effect<Done> cancelReservation(CancelSeatReservation cancelSeatReservation) {
     if (currentState() == null) {
-      return effects().error("show not exists");
+      return effects().error("show does not exists");
     } else {
       return switch (currentState().process(cancelSeatReservation)) {
-        case Or.Left(var error) -> effects().error(error.name());
-        case Or.Right(var showEvent) -> effects()
-          .persist(showEvent)
-          .thenReply(__ -> done());
+        case Or.Left(var error) -> errorEffect(error, cancelSeatReservation);
+        case Or.Right(var event) -> persistEffect(event);
       };
     }
   }
 
   public Effect<Done> confirmPayment(ConfirmReservationPayment confirmReservationPayment) {
     if (currentState() == null) {
-      return effects().error("show not exists");
+      return effects().error("show does not exists");
     } else {
       return switch (currentState().process(confirmReservationPayment)) {
-        case Or.Left(var error) -> effects().error(error.name());
-        case Or.Right(var showEvent) -> effects()
-          .persist(showEvent)
-          .thenReply(__ -> done());
+        case Or.Left(var error) -> errorEffect(error, confirmReservationPayment);
+        case Or.Right(var event) -> persistEffect(event);
       };
     }
   }
 
   public Effect<ShowResponse> get() {
     if (currentState() == null) {
-      return effects().error("show not exists");
+      return effects().error("show does not exists");
     } else {
       return effects().reply(ShowResponse.from(currentState()));
     }
@@ -85,12 +79,27 @@ public class ShowEntity extends EventSourcedEntity<Show, ShowEvent> {
 
   public Effect<SeatStatus> getSeatStatus(int seatNumber) {
     if (currentState() == null) {
-      return effects().error("show not exists");
+      return effects().error("show does not exists");
     } else {
       return currentState().seats().get(seatNumber).fold(
-        () -> effects().error("seat not exists"),
+        () -> effects().error("seat does not exists"),
         seat -> effects().reply(seat.status())
       );
+    }
+  }
+
+  private Effect<Done> persistEffect(ShowEvent showEvent) {
+    return effects()
+      .persist(showEvent)
+      .thenReply(__ -> done());
+  }
+
+  private Effect<Done> errorEffect(ShowCommandError error, ShowCommand showCommand) {
+    if (error == DUPLICATED_COMMAND) {
+      return effects().reply(done());
+    } else {
+      logger.error("processing command {} failed with {}", showCommand, error);
+      return effects().error(error.name());
     }
   }
 

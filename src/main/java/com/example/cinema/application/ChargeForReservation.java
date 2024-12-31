@@ -10,6 +10,10 @@ import com.example.wallet.domain.WalletCommand.ChargeWallet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.UUID;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 @ComponentId("charge-for-reservation")
 @Consume.FromEventSourcedEntity(value = ShowEntity.class, ignoreUnknown = true)
 public class ChargeForReservation extends Consumer {
@@ -25,7 +29,9 @@ public class ChargeForReservation extends Consumer {
   public Effect charge(SeatReserved seatReserved) {
     logger.info("charging for reservation, triggered by {}", seatReserved);
     String expenseId = seatReserved.reservationId();
-    var chargeWallet = new ChargeWallet(seatReserved.price(), expenseId);
+    String sequenceNum = messageContext().metadata().get("ce-sequence").orElseThrow();
+    String commandId = UUID.nameUUIDFromBytes(sequenceNum.getBytes(UTF_8)).toString();
+    var chargeWallet = new ChargeWallet(seatReserved.price(), expenseId, commandId);
 
     var chargeCall = componentClient.forEventSourcedEntity(seatReserved.walletId())
       .method(WalletEntity::charge)

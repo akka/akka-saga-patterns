@@ -1,19 +1,16 @@
 package com.example.cinema.domain;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
-public record ShowByReservation(String showId, List<String> reservationIds) {
+public record ShowByReservation(String showId, Set<String> reservationIds) {
 
-  public ShowByReservation(String showId, String reservationId) {
-    this(showId, new ArrayList<>());
-    reservationIds.add(reservationId);
+  public ShowByReservation(String showId) {
+    this(showId, new HashSet<>());
   }
 
   public ShowByReservation add(String reservationId) {
-    if (!reservationIds.contains(reservationId)) {
-      reservationIds.add(reservationId);
-    }
+    reservationIds.add(reservationId);
     return this;
   }
 

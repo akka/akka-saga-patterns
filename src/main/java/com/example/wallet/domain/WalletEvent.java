@@ -12,7 +12,11 @@ public sealed interface WalletEvent {
   }
 
   @TypeName("wallet-charged")
-  record WalletCharged(String walletId, BigDecimal amount, String expenseId) implements WalletEvent {
+  record WalletCharged(String walletId, BigDecimal amount, String expenseId, String commandId) implements WalletEvent {
+  }
+
+  @TypeName("wallet-funds-deposited")
+  record FundsDeposited(String walletId, BigDecimal amount, String commandId) implements WalletEvent {
   }
 
   @TypeName("wallet-charge-rejected")

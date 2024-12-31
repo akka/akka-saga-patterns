@@ -5,14 +5,14 @@ import akka.javasdk.annotations.ComponentId;
 import akka.javasdk.eventsourcedentity.EventSourcedEntity;
 import com.example.common.Or;
 import com.example.wallet.domain.Wallet;
+import com.example.wallet.domain.WalletCommand;
 import com.example.wallet.domain.WalletCommand.ChargeWallet;
 import com.example.wallet.domain.WalletCommand.CreateWallet;
+import com.example.wallet.domain.WalletCommand.DepositFunds;
+import com.example.wallet.domain.WalletCommandError;
 import com.example.wallet.domain.WalletEvent;
-import com.example.wallet.domain.WalletEvent.WalletCreated;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.math.BigDecimal;
 
 import static akka.Done.done;
 
@@ -27,51 +27,55 @@ public class WalletEntity extends EventSourcedEntity<Wallet, WalletEvent> {
   }
 
   public Effect<Done> create(CreateWallet createWallet) {
-    if (!currentState().isEmpty()) {
-      logger.warn("wallet already exists");
-      return effects().error("wallet already exists");
-    } else {
-      String walletId = commandContext().entityId();
-      BigDecimal initialBalance = createWallet.initialBalance();
-      return effects()
-        .persist(new WalletCreated(walletId, initialBalance))
-        .thenReply(__ -> {
-          logger.info("wallet {} created, init balance {}", walletId, initialBalance);
-          return done();
-        });
-    }
+    return switch (currentState().process(createWallet)) {
+      case Or.Left(var error) -> errorEffect(error, createWallet);
+      case Or.Right(var event) -> persistEffect(event, createWallet);
+    };
   }
 
-  public Effect<Wallet> get() {
+  public Effect<WalletResponse> get() {
     if (currentState().isEmpty()) {
       return effects().error("wallet not created");
     } else {
-      return effects().reply(currentState());
+      return effects().reply(WalletResponse.from(currentState()));
     }
   }
 
   public Effect<Done> charge(ChargeWallet chargeWallet) {
-    if (currentState().isEmpty()) {
-      logger.error("wallet not exists");
-      return effects().error("wallet not exists");
-    } else {
-      return switch (currentState().process(chargeWallet)) {
-        case Or.Left(var error) -> {
-          logger.error("processing command {} failed with {}", chargeWallet, error);
-          yield effects().error(error.name());
-        }
-        case Or.Right(var event) -> {
-          yield effects().persist(event).thenReply(__ -> {
-            logger.info("charging wallet completed {}", chargeWallet);
-            return done();
-          });
-        }
-      };
-    }
+    return switch (currentState().process(chargeWallet)) {
+      case Or.Left(var error) -> errorEffect(error, chargeWallet);
+      case Or.Right(var event) -> persistEffect(event, chargeWallet);
+    };
+  }
+
+  public Effect<Done> deposit(DepositFunds depositFunds) {
+    return switch (currentState().process(depositFunds)) {
+      case Or.Left(var error) -> errorEffect(error, depositFunds);
+      case Or.Right(var event) -> persistEffect(event, depositFunds);
+    };
   }
 
   @Override
   public Wallet applyEvent(WalletEvent walletEvent) {
     return currentState().apply(walletEvent);
+  }
+
+  private Effect<Done> persistEffect(WalletEvent event, WalletCommand walletCommand) {
+    return effects()
+      .persist(event)
+      .thenReply(__ -> {
+        logger.info("processing command {} completed", walletCommand);
+        return done();
+      });
+  }
+
+  private Effect<Done> errorEffect(WalletCommandError error, WalletCommand walletCommand) {
+    if (error.equals(WalletCommandError.DUPLICATED_COMMAND)) {
+      logger.debug("Ignoring duplicated command {}", walletCommand);
+      return effects().reply(done());
+    } else {
+      logger.warn("processing {} failed with {}", walletCommand, error);
+      return effects().error(error.name());
+    }
   }
 }

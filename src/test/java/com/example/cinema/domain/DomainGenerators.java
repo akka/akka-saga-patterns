@@ -19,6 +19,10 @@ public class DomainGenerators {
     return UUID.randomUUID().toString();
   }
 
+  public static String randomCommandId() {
+    return UUID.randomUUID().toString();
+  }
+
   public static String randomReservationId() {
     return UUID.randomUUID().toString();
   }
