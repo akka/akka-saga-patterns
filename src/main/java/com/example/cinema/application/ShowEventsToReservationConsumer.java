@@ -5,10 +5,9 @@ import akka.javasdk.annotations.ComponentId;
 import akka.javasdk.annotations.Consume;
 import akka.javasdk.client.ComponentClient;
 import akka.javasdk.consumer.Consumer;
-import com.example.cinema.domain.ShowEvent.SeatReservationCancelled;
+import com.example.cinema.application.ReservationEntity.CreateReservation;
 import com.example.cinema.domain.ShowEvent.SeatReservationPaid;
 import com.example.cinema.domain.ShowEvent.SeatReserved;
-import com.example.wallet.application.WalletEntity;
 
 import java.util.concurrent.CompletionStage;
 
@@ -23,19 +22,20 @@ public class ShowEventsToReservationConsumer extends Consumer {
   }
 
   public Effect onEvent(SeatReserved reserved) {
-    return effects().asyncDone(createReservation(reserved.reservationId(), reserved.showId()));
+    return effects().asyncDone(createReservation(reserved.reservationId(), new CreateReservation(reserved.showId(), reserved.walletId(), reserved.price())));
   }
 
   public Effect onEvent(SeatReservationPaid paid) {
     return effects().asyncDone(deleteReservation(paid.reservationId()));
   }
 
-  public Effect onEvent(SeatReservationCancelled cancelled) {
-    return effects().asyncDone(deleteReservation(cancelled.reservationId()));
-  }
+// alternatively we can use dedicated event for the cancellation after a failure
+//  public Effect onEvent(SeatReservationCancelled cancelled) {
+//    return effects().asyncDone(deleteReservation(cancelled.reservationId()));
+//  }
 
-  private CompletionStage<Done> createReservation(String reservationId, String showId) {
-    return componentClient.forKeyValueEntity(reservationId).method(ReservationEntity::create).invokeAsync(showId);
+  private CompletionStage<Done> createReservation(String reservationId, CreateReservation createReservation) {
+    return componentClient.forKeyValueEntity(reservationId).method(ReservationEntity::create).invokeAsync(createReservation);
   }
 
   private CompletionStage<Done> deleteReservation(String reservationId) {

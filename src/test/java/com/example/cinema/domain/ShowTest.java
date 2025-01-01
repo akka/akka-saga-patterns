@@ -2,6 +2,7 @@ package com.example.cinema.domain;
 
 import com.example.cinema.domain.ShowCommand.CancelSeatReservation;
 import com.example.cinema.domain.ShowCommand.ConfirmReservationPayment;
+import com.example.cinema.domain.ShowEvent.CancelledReservationConfirmed;
 import com.example.cinema.domain.ShowEvent.SeatReservationCancelled;
 import com.example.cinema.domain.ShowEvent.SeatReservationPaid;
 import com.example.cinema.domain.ShowEvent.SeatReserved;
@@ -19,6 +20,7 @@ import static com.example.cinema.domain.SeatStatus.AVAILABLE;
 import static com.example.cinema.domain.SeatStatus.PAID;
 import static com.example.cinema.domain.SeatStatus.RESERVED;
 import static com.example.cinema.domain.ShowBuilder.showBuilder;
+import static com.example.cinema.domain.ShowCommandError.CANCELLING_CONFIRMED_RESERVATION;
 import static com.example.cinema.domain.ShowCommandError.DUPLICATED_COMMAND;
 import static com.example.cinema.domain.ShowCommandError.RESERVATION_NOT_FOUND;
 import static com.example.cinema.domain.ShowCommandError.SEAT_NOT_AVAILABLE;
@@ -154,7 +156,7 @@ class ShowTest {
   }
 
   @Test
-  public void shouldRejectConfirmationAfterCancellation() {
+  public void shouldConfirmAfterCancellation() {
     //given
     var reservedSeat = new Seat(2, SeatStatus.RESERVED, new BigDecimal("123"));
     var reservationId = randomReservationId();
@@ -165,10 +167,10 @@ class ShowTest {
     var updatedShow = show.apply(event);
 
     //when
-    var result = updatedShow.process(confirmReservationPayment).leftValue();
+    var result = updatedShow.process(confirmReservationPayment).rightValue();
 
     //then
-    assertThat(result).isEqualTo(RESERVATION_NOT_FOUND);
+    assertThat(result).isEqualTo(new CancelledReservationConfirmed(show.id(), reservationId, reservedSeat.number()));
   }
 
   @Test
@@ -208,7 +210,7 @@ class ShowTest {
     ShowCommandError result = updatedShow.process(cancelSeatReservation).leftValue();
 
     //then
-    assertThat(result).isEqualTo(RESERVATION_NOT_FOUND);
+    assertThat(result).isEqualTo(CANCELLING_CONFIRMED_RESERVATION);
   }
 
   @Test

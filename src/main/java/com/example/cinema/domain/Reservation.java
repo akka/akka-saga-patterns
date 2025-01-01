@@ -1,4 +1,6 @@
 package com.example.cinema.domain;
 
-public record Reservation(String reservationId, String showId) {
+import java.math.BigDecimal;
+
+public record Reservation(String reservationId, String showId, String walletId, BigDecimal price) {
 }

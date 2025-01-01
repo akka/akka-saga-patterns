@@ -1,13 +1,18 @@
 package com.example;
 
+import akka.javasdk.Metadata;
 import akka.javasdk.http.StrictResponse;
 import akka.javasdk.testkit.TestKitSupport;
 import akka.util.ByteString;
 import com.example.cinema.domain.SeatStatus;
 import com.example.cinema.domain.ShowCommand;
+import com.example.wallet.application.WalletEntity;
+import com.example.wallet.application.WalletResponse;
+import com.example.wallet.domain.WalletCommand;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -68,6 +73,87 @@ public class ShowSeatReservationIntegrationTest extends TestKitSupport {
         var seatStatus = getSeatStatus(showId, seatNumber);
         assertThat(seatStatus.body()).isEqualTo(SeatStatus.AVAILABLE);
       });
+  }
+
+  @Test
+  public void shouldConfirmCancelledReservationAndRefund() {
+    //given
+    var walletId = randomId();
+    var showId = randomId();
+    var reservationId = "42";
+    var seatNumber = 11;
+
+    createWallet(walletId, 300);
+    createShow(showId, "pulp fiction");
+
+    //when
+    var reservationResponse = reserveSeat(showId, walletId, reservationId, seatNumber);
+    assertThat(reservationResponse.status()).isEqualTo(OK);
+
+    //then
+    Awaitility.await()
+      .atMost(20, TimeUnit.of(SECONDS))
+      .untilAsserted(() -> {
+        var seatStatus = getSeatStatus(showId, seatNumber);
+        assertThat(seatStatus.body()).isEqualTo(SeatStatus.AVAILABLE);
+      });
+
+    //simulating that the wallet was actually charged
+    chargeWallet(walletId, new WalletCommand.ChargeWallet(new BigDecimal(100), reservationId, randomId()));
+
+    Awaitility.await()
+      .atMost(20, TimeUnit.of(SECONDS))
+      .untilAsserted(() -> {
+        WalletResponse wallet = getWallet(walletId);
+        assertThat(wallet.balance()).isEqualTo(new BigDecimal(300));
+      });
+  }
+
+  @Test
+  public void shouldAllowToCancelAlreadyCancelledReservation() {
+    //given
+    var walletId = randomId();
+    var showId = randomId();
+    var reservationId = "42";
+    var seatNumber = 11;
+
+    createWallet(walletId, 300);
+    createShow(showId, "pulp fiction");
+
+    //when
+    var reservationResponse = reserveSeat(showId, walletId, reservationId, seatNumber);
+    assertThat(reservationResponse.status()).isEqualTo(OK);
+
+    //then
+    Awaitility.await()
+      .atMost(20, TimeUnit.of(SECONDS))
+      .untilAsserted(() -> {
+        var seatStatus = getSeatStatus(showId, seatNumber);
+        assertThat(seatStatus.body()).isEqualTo(SeatStatus.AVAILABLE);
+      });
+
+    //simulating that the wallet charging was rejected for this reservation
+    chargeWallet(walletId, new WalletCommand.ChargeWallet(new BigDecimal(400), reservationId, randomId()));
+
+    Awaitility.await()
+      .atMost(20, TimeUnit.of(SECONDS))
+      .untilAsserted(() -> {
+        WalletResponse wallet = getWallet(walletId);
+        assertThat(wallet.balance()).isEqualTo(new BigDecimal(300));
+      });
+  }
+
+  private WalletResponse getWallet(String walletId) {
+    return await(componentClient.forEventSourcedEntity(walletId)
+      .method(WalletEntity::get)
+      .invokeAsync());
+  }
+
+  private void chargeWallet(String walletId, WalletCommand.ChargeWallet chargeWallet) {
+    await(componentClient.forEventSourcedEntity(walletId)
+      .method(WalletEntity::charge)
+      .withMetadata(Metadata.EMPTY.add("skip-failure-simulation", "true"))
+      .invokeAsync(chargeWallet));
   }
 
   private String randomId() {

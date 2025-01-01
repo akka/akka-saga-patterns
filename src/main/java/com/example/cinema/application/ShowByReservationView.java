@@ -7,13 +7,11 @@ import akka.javasdk.view.TableUpdater;
 import akka.javasdk.view.View;
 import com.example.cinema.domain.ShowByReservation;
 import com.example.cinema.domain.ShowEvent;
+import com.example.cinema.domain.ShowEvent.CancelledReservationConfirmed;
 import com.example.cinema.domain.ShowEvent.SeatReservationCancelled;
 import com.example.cinema.domain.ShowEvent.SeatReservationPaid;
 import com.example.cinema.domain.ShowEvent.SeatReserved;
 import com.example.cinema.domain.ShowEvent.ShowCreated;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @ComponentId("show-by-reservation-view")
 public class ShowByReservationView extends View {
@@ -32,6 +30,7 @@ public class ShowByReservationView extends View {
         case SeatReserved reserved -> effects().updateRow(rowState().add(reserved.reservationId()));
         case SeatReservationPaid paid -> effects().updateRow(rowState().remove(paid.reservationId()));
         case SeatReservationCancelled cancelled -> effects().updateRow(rowState().remove(cancelled.reservationId()));
+        case CancelledReservationConfirmed __ -> effects().ignore();
       };
     }
   }

@@ -13,7 +13,8 @@ public sealed interface ShowEvent {
   }
 
   @TypeName("seat-reserved")
-  record SeatReserved(String showId, String walletId, String reservationId, int seatNumber, BigDecimal price) implements ShowEvent {
+  record SeatReserved(String showId, String walletId, String reservationId, int seatNumber,
+                      BigDecimal price) implements ShowEvent {
   }
 
   @TypeName("seat-reservation-paid")
@@ -22,5 +23,9 @@ public sealed interface ShowEvent {
 
   @TypeName("seat-reservation-cancelled")
   record SeatReservationCancelled(String showId, String reservationId, int seatNumber) implements ShowEvent {
+  }
+
+  @TypeName("cancelled-reservation-confirmed")
+  record CancelledReservationConfirmed(String showId, String reservationId, int seatNumber) implements ShowEvent {
   }
 }

@@ -42,10 +42,16 @@ public class WalletEntity extends EventSourcedEntity<Wallet, WalletEvent> {
   }
 
   public Effect<Done> charge(ChargeWallet chargeWallet) {
-    return switch (currentState().process(chargeWallet)) {
-      case Or.Left(var error) -> errorEffect(error, chargeWallet);
-      case Or.Right(var event) -> persistEffect(event, chargeWallet);
-    };
+    // simulate a failure for expenseId=42 but also allow skipping the failure simulation
+    if (chargeWallet.expenseId().equals("42") && commandContext().metadata().get("skip-failure-simulation").isEmpty()) {
+      logger.info("charging failed");
+      return effects().error("Unexpected error for expenseId=42");
+    } else {
+      return switch (currentState().process(chargeWallet)) {
+        case Or.Left(var error) -> errorEffect(error, chargeWallet);
+        case Or.Right(var event) -> persistEffect(event, chargeWallet);
+      };
+    }
   }
 
   public Effect<Done> deposit(DepositFunds depositFunds) {
