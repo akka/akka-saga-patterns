@@ -30,10 +30,16 @@ mvn compile
 
 ## Run Locally
 
-To start your service locally, run:
+To start your service locally, for orchestration with the Workflow component run:
 
 ```shell
-mvn compile exec:java
+mvn compile exec:java -Dapplication.mode="orchestration"
+```
+
+For choreography run:
+
+```shell
+mvn compile exec:java -Dapplication.mode="choreography"
 ```
 
 This command will start your Akka service.
@@ -82,13 +88,32 @@ Get cinema show
 curl http://localhost:9000/cinema-show/show1
 ```
 
+### Orchestration
+
+Make reservation
+
+```shell
+curl http://localhost:9000/seat-reservation/123 \
+  -i -X POST \
+  --header "Content-Type: application/json" \
+  --data '{"showId": "show1", "seatNumber": 3, "walletId": 1}'
+```
+
+Get reservation
+
+```shell
+curl http://localhost:9000/seat-reservation/123
+```
+
+### Choreography
+
 Make reservation
 
 ```shell
 curl http://localhost:9000/cinema-show/show1/reserve \
   -i -X PATCH \
   --header "Content-Type: application/json" \
-  --data '{"walletId": "1", "expenseId": "123", "seatNumber": 3}'
+  --data '{"walletId": "1", "reservationId": "123", "seatNumber": 3}'
 ```
 
 Verify wallet balance

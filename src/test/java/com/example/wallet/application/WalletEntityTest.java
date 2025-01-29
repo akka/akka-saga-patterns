@@ -1,8 +1,8 @@
 package com.example.wallet.application;
 
-import akka.Done;
 import akka.javasdk.testkit.EventSourcedResult;
 import akka.javasdk.testkit.EventSourcedTestKit;
+import com.example.common.Response;
 import com.example.wallet.domain.Wallet;
 import com.example.wallet.domain.WalletCommand;
 import com.example.wallet.domain.WalletCommand.CreateWallet;
@@ -29,7 +29,7 @@ class WalletEntityTest {
     CreateWallet createWallet = new CreateWallet(walletId, BigDecimal.valueOf(100));
 
     //when
-    EventSourcedResult<Done> result = testKit.call(wallet -> wallet.create(createWallet));
+    EventSourcedResult<Response> result = testKit.call(wallet -> wallet.create(createWallet));
 
     //then
     WalletCreated created = result.getNextEventOfType(WalletCreated.class);
@@ -49,7 +49,7 @@ class WalletEntityTest {
     var chargeWallet = new WalletCommand.ChargeWallet(new BigDecimal(10), "r1", randomCommandId());
 
     //when
-    EventSourcedResult<Done> result = testKit.call(wallet -> wallet.charge(chargeWallet));
+    EventSourcedResult<Response> result = testKit.call(wallet -> wallet.charge(chargeWallet));
 
     //then
     WalletCharged charged = result.getNextEventOfType(WalletCharged.class);
@@ -71,11 +71,31 @@ class WalletEntityTest {
     testKit.call(wallet -> wallet.charge(chargeWallet));
 
     //when
-    EventSourcedResult<Done> result = testKit.call(wallet -> wallet.charge(chargeWallet));
+    EventSourcedResult<Response> result = testKit.call(wallet -> wallet.charge(chargeWallet));
 
     //then
     assertThat(result.isReply()).isTrue();
     assertThat(result.didEmitEvents()).isFalse();
     assertThat(testKit.getState().balance()).isEqualTo(new BigDecimal(90));
+  }
+
+  @Test
+  public void shouldRefundWallet() {
+    //given
+    var walletId = randomWalletId();
+    EventSourcedTestKit<Wallet, WalletEvent, WalletEntity> testKit = EventSourcedTestKit.of(walletId, WalletEntity::new);
+    CreateWallet createWallet = new CreateWallet(walletId, BigDecimal.valueOf(100));
+    testKit.call(wallet -> wallet.create(createWallet));
+    var chargeWallet = new WalletCommand.ChargeWallet(new BigDecimal(10), "r1", randomCommandId());
+    testKit.call(wallet -> wallet.charge(chargeWallet));
+    var refund = new WalletCommand.Refund("r1", randomCommandId());
+
+    //when
+    EventSourcedResult<Response> refundResult = testKit.call(wallet -> wallet.refund(refund));
+
+    //then
+    assertThat(refundResult.isReply()).isTrue();
+    assertThat(refundResult.didEmitEvents()).isTrue();
+    assertThat(testKit.getState().balance()).isEqualTo(new BigDecimal(100));
   }
 }

@@ -13,6 +13,7 @@
             <list>
               <option value="compile" />
               <option value="exec:java" />
+              <option value="-Dapplication.mode=orchestration" />
             </list>
           </option>
           <option name="multimoduleDir" />

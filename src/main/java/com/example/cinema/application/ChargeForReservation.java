@@ -8,6 +8,7 @@ import akka.javasdk.consumer.Consumer;
 import akka.pattern.Patterns;
 import akka.stream.Materializer;
 import com.example.cinema.domain.ShowEvent.SeatReserved;
+import com.example.common.Response;
 import com.example.wallet.application.WalletEntity;
 import com.example.wallet.domain.WalletCommand.ChargeWallet;
 import org.slf4j.Logger;
@@ -60,7 +61,8 @@ public class ChargeForReservation extends Consumer {
   private CompletionStage<Done> chargeWallet(String walletId, ChargeWallet chargeWallet) {
     return componentClient.forEventSourcedEntity(walletId)
       .method(WalletEntity::charge)
-      .invokeAsync(chargeWallet);
+      .invokeAsync(chargeWallet)
+      .thenApply(Response::toDone);
   }
 
   private CompletionStage<Done> registerFailure(Throwable throwable, String walletId, ChargeWallet chargeWallet) {

@@ -9,6 +9,7 @@ import com.example.cinema.domain.Reservation;
 import com.example.cinema.domain.ShowByReservation;
 import com.example.cinema.domain.ShowCommand;
 import com.example.cinema.domain.ShowCommand.CancelSeatReservation;
+import com.example.common.Response;
 import com.example.wallet.application.WalletEntity;
 import com.example.wallet.domain.WalletEvent.WalletChargeRejected;
 import com.example.wallet.domain.WalletEvent.WalletCharged;
@@ -54,13 +55,15 @@ public class CompleteReservation extends Consumer {
   private CompletionStage<Done> confirmReservation(String showId, String reservationId) {
     return componentClient.forEventSourcedEntity(showId)
       .method(ShowEntity::confirmPayment)
-      .invokeAsync(new ShowCommand.ConfirmReservationPayment(reservationId));
+      .invokeAsync(new ShowCommand.ConfirmReservationPayment(reservationId))
+      .thenApply(Response::toDone);
   }
 
   private CompletionStage<Done> cancelReservation(String showId, String reservationId) {
     return componentClient.forEventSourcedEntity(showId)
       .method(ShowEntity::cancelReservation)
-      .invokeAsync(new CancelSeatReservation(reservationId));
+      .invokeAsync(new CancelSeatReservation(reservationId))
+      .thenApply(Response::toDone);
   }
 
   //Key Value Entity as a read model

@@ -7,6 +7,7 @@ import akka.javasdk.client.ComponentClient;
 import akka.javasdk.consumer.Consumer;
 import com.example.cinema.domain.Reservation;
 import com.example.cinema.domain.ShowEvent.CancelledReservationConfirmed;
+import com.example.common.Response;
 import com.example.wallet.application.WalletEntity;
 import com.example.wallet.domain.WalletCommand;
 import org.slf4j.Logger;
@@ -52,6 +53,7 @@ public class RefundForReservation extends Consumer {
   private CompletionStage<Done> refund(String walletId, BigDecimal amount, String commandId) {
     return componentClient.forEventSourcedEntity(walletId)
       .method(WalletEntity::deposit)
-      .invokeAsync(new WalletCommand.DepositFunds(amount, commandId));
+      .invokeAsync(new WalletCommand.DepositFunds(amount, commandId))
+      .thenApply(Response::toDone);
   }
 }

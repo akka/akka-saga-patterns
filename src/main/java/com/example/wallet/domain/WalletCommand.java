@@ -17,4 +17,7 @@ public sealed interface WalletCommand {
 
   record DepositFunds(BigDecimal amount, String commandId) implements RequiresDeduplicationCommand {
   }
+
+  record Refund(String expenseId, String commandId) implements RequiresDeduplicationCommand {
+  }
 }

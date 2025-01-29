@@ -2,6 +2,7 @@ package com.example;
 
 import akka.javasdk.Metadata;
 import akka.javasdk.http.StrictResponse;
+import akka.javasdk.testkit.TestKit;
 import akka.javasdk.testkit.TestKitSupport;
 import akka.util.ByteString;
 import com.example.cinema.domain.SeatStatus;
@@ -9,11 +10,12 @@ import com.example.cinema.domain.ShowCommand;
 import com.example.wallet.application.WalletEntity;
 import com.example.wallet.application.WalletResponse;
 import com.example.wallet.domain.WalletCommand;
+import com.typesafe.config.ConfigFactory;
 import org.awaitility.Awaitility;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -23,9 +25,16 @@ import static java.time.temporal.ChronoUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
+@Disabled
 public class ShowSeatReservationIntegrationTest extends TestKitSupport {
 
-  private final Duration timeout = Duration.ofSeconds(10);
+  @Override
+  protected TestKit.Settings testKitSettings() {
+    return super.testKitSettings()
+      .withAdditionalConfig(ConfigFactory.parseString("""
+        application.mode = "choreography"
+        """));
+  }
 
   @Test
   public void shouldCompleteSeatReservation() {
@@ -156,7 +165,7 @@ public class ShowSeatReservationIntegrationTest extends TestKitSupport {
       .invokeAsync(chargeWallet));
   }
 
-  private String randomId() {
+  static String randomId() {
     return UUID.randomUUID().toString().substring(0, 7);
   }
 

@@ -2,7 +2,7 @@ package com.example.cinema.domain;
 
 public enum ShowCommandError {
   SHOW_ALREADY_EXISTS,
-  SHOW_NOT_EXISTS,
+  SHOW_NOT_FOUND,
   TOO_MANY_SEATS,
   SEAT_NOT_EXISTS,
   SEAT_NOT_AVAILABLE,

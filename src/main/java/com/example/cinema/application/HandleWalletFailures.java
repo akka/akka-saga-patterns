@@ -8,6 +8,7 @@ import akka.javasdk.consumer.Consumer;
 import com.example.cinema.application.WalletFailureEntity.WalletChargeFailureOccurred;
 import com.example.cinema.domain.Reservation;
 import com.example.cinema.domain.ShowCommand;
+import com.example.common.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +39,8 @@ public class HandleWalletFailures extends Consumer {
   private CompletionStage<Done> cancelReservation(String reservationId, String showId) {
     return componentClient.forEventSourcedEntity(showId)
       .method(ShowEntity::cancelReservation)
-      .invokeAsync(new ShowCommand.CancelSeatReservation(reservationId));
+      .invokeAsync(new ShowCommand.CancelSeatReservation(reservationId))
+      .thenApply(Response::toDone);
   }
 
   private CompletionStage<String> getShowIdBy(String reservationId) {

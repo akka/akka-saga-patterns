@@ -14,18 +14,26 @@ import com.example.cinema.domain.ShowCreator;
 import com.example.cinema.domain.ShowEvent;
 import com.example.cinema.domain.ShowEvent.ShowCreated;
 import com.example.common.Or;
+import com.example.common.Response;
+import com.example.common.Response.Failure;
+import com.example.common.Response.Success;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
+import java.util.function.Predicate;
+
 import static akka.Done.done;
+import static com.example.cinema.domain.ShowCommandError.CANCELLING_CONFIRMED_RESERVATION;
 import static com.example.cinema.domain.ShowCommandError.DUPLICATED_COMMAND;
+import static com.example.cinema.domain.ShowCommandError.RESERVATION_NOT_FOUND;
 
 @ComponentId("show")
 public class ShowEntity extends EventSourcedEntity<Show, ShowEvent> {
 
   private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-  public Effect<Done> create(ShowCommand.CreateShow createShow) {
+  public Effect<Response> create(ShowCommand.CreateShow createShow) {
     if (currentState() != null) {
       return effects().error("show already exists");
     } else {
@@ -36,7 +44,7 @@ public class ShowEntity extends EventSourcedEntity<Show, ShowEvent> {
     }
   }
 
-  public Effect<Done> reserve(ReserveSeat reserveSeat) {
+  public Effect<Response> reserve(ReserveSeat reserveSeat) {
     if (currentState() == null) {
       return effects().error("show does not exists");
     } else {
@@ -47,18 +55,20 @@ public class ShowEntity extends EventSourcedEntity<Show, ShowEvent> {
     }
   }
 
-  public Effect<Done> cancelReservation(CancelSeatReservation cancelSeatReservation) {
+  public Effect<Response> cancelReservation(CancelSeatReservation cancelSeatReservation) {
     if (currentState() == null) {
       return effects().error("show does not exists");
     } else {
       return switch (currentState().process(cancelSeatReservation)) {
-        case Or.Left(var error) -> errorEffect(error, cancelSeatReservation);
+        case Or.Left(var error) -> errorEffect(error, cancelSeatReservation, e -> e == DUPLICATED_COMMAND
+          || e == CANCELLING_CONFIRMED_RESERVATION
+          || e == RESERVATION_NOT_FOUND);
         case Or.Right(var event) -> persistEffect(event);
       };
     }
   }
 
-  public Effect<Done> confirmPayment(ConfirmReservationPayment confirmReservationPayment) {
+  public Effect<Response> confirmPayment(ConfirmReservationPayment confirmReservationPayment) {
     if (currentState() == null) {
       return effects().error("show does not exists");
     } else {
@@ -88,18 +98,33 @@ public class ShowEntity extends EventSourcedEntity<Show, ShowEvent> {
     }
   }
 
-  private Effect<Done> persistEffect(ShowEvent showEvent) {
-    return effects()
-      .persist(showEvent)
-      .thenReply(__ -> done());
+  public Effect<BigDecimal> getPrice(int seatNumber) {
+    if (currentState() == null) {
+      return effects().error("show does not exists");
+    } else {
+      return currentState().seats().get(seatNumber).fold(
+        () -> effects().error("seat does not exists"),
+        seat -> effects().reply(seat.price())
+      );
+    }
   }
 
-  private Effect<Done> errorEffect(ShowCommandError error, ShowCommand showCommand) {
-    if (error == DUPLICATED_COMMAND) {
-      return effects().reply(done());
+  private Effect<Response> persistEffect(ShowEvent showEvent) {
+    return effects()
+      .persist(showEvent)
+      .thenReply(__ -> Success.of("ok"));
+  }
+
+  private Effect<Response> errorEffect(ShowCommandError error, ShowCommand showCommand) {
+    return errorEffect(error, showCommand, e -> e == DUPLICATED_COMMAND);
+  }
+
+  private Effect<Response> errorEffect(ShowCommandError error, ShowCommand showCommand, Predicate<ShowCommandError> shouldBeSuccessful) {
+    if (shouldBeSuccessful.test(error)) {
+      return effects().reply(Success.of("ok"));
     } else {
       logger.error("processing command {} failed with {}", showCommand, error);
-      return effects().error(error.name());
+      return effects().reply(Failure.of(error.name()));
     }
   }
 

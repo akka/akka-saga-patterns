@@ -22,4 +22,8 @@ public sealed interface WalletEvent {
   @TypeName("wallet-charge-rejected")
   record WalletChargeRejected(String walletId, String expenseId) implements WalletEvent {
   }
+
+  @TypeName("wallet-refunded")
+  record WalletRefunded(String walletId, BigDecimal amount, String expenseId, String commandId) implements WalletEvent {
+  }
 }
