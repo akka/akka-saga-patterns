@@ -37,8 +37,9 @@ public class ChargeForReservation extends Consumer {
   public Effect charge(SeatReserved seatReserved) {
     logger.info("charging for reservation, triggered by {}", seatReserved);
     String expenseId = seatReserved.reservationId();
-    String sequenceNum = messageContext().metadata().get("ce-sequence").orElseThrow();
-    String commandId = UUID.nameUUIDFromBytes(sequenceNum.getBytes(UTF_8)).toString();
+    String entityId = messageContext().eventSubject().get();
+    Long sequenceNum = messageContext().metadata().asCloudEvent().sequence().get();
+    String commandId = UUID.nameUUIDFromBytes((entityId + sequenceNum).getBytes()).toString();
     var chargeWallet = new ChargeWallet(seatReserved.price(), expenseId, commandId);
     var walletId = seatReserved.walletId();
 
