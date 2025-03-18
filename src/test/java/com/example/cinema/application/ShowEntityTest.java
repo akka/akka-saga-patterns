@@ -26,9 +26,9 @@ class ShowEntityTest {
     var reserveSeat = new ShowCommand.ReserveSeat(walletId, reservationId, seatNumber);
 
     //when
-    testKit.call(s -> s.create(createShow));
-    testKit.call(s -> s.reserve(reserveSeat));
-    testKit.call(s -> s.confirmPayment(new ConfirmReservationPayment(reservationId)));
+    testKit.method(ShowEntity::create).invoke(createShow);
+    testKit.method(ShowEntity::reserve).invoke(reserveSeat);
+    testKit.method(ShowEntity::confirmPayment).invoke(new ConfirmReservationPayment(reservationId));
 
     //then
     var confirmedSeat = testKit.getState().seats().get(seatNumber).get();

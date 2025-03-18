@@ -1,6 +1,8 @@
 package com.example.wallet.domain;
 
 import com.example.common.Or;
+import com.example.common.VavrMapDeserializer;
+import com.example.common.VavrMapSerializer;
 import com.example.wallet.domain.WalletCommand.ChargeWallet;
 import com.example.wallet.domain.WalletCommand.CreateWallet;
 import com.example.wallet.domain.WalletCommand.DepositFunds;
@@ -12,12 +14,13 @@ import com.example.wallet.domain.WalletEvent.WalletCharged;
 import com.example.wallet.domain.WalletEvent.WalletCreated;
 import com.example.wallet.domain.WalletEvent.WalletRefunded;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.function.Supplier;
 
 import static com.example.common.Or.left;
@@ -27,15 +30,31 @@ import static com.example.wallet.domain.WalletCommandError.EXPENSE_NOT_FOUND;
 import static com.example.wallet.domain.WalletCommandError.WALLET_ALREADY_EXISTS;
 import static com.example.wallet.domain.WalletCommandError.WALLET_NOT_FOUND;
 
-public record Wallet(String id, BigDecimal balance, Map<String, Expense> expenses, List<String> commandIds) {
+public record Wallet(String id, BigDecimal balance,
+                     @JsonSerialize(using = VavrMapSerializer.class)
+                     @JsonDeserialize(using = VavrMapDeserializer.class)
+                     Map<String, Expense> expenses,
+                     LinkedHashSet<String> commandIds) {
 
 
   public static final int COMMAND_IDS_MAX_SIZE = 1000;
   public static final Wallet EMPTY = new Wallet("", BigDecimal.ZERO);
 
   public Wallet(String id, BigDecimal balance) {
-    this(id, balance, HashMap.empty(), new ArrayList<>());
+    this(id, balance, HashMap.empty(), new LinkedHashSet<>());
   }
+
+//  // Custom constructor for deserialization
+//  @JsonCreator
+//  Wallet(@JsonProperty("id") String id, @JsonProperty("balance") BigDecimal balance, @JsonProperty("expense") java.util.Map<String, Expense> expenses, @JsonProperty("commandIds") LinkedHashSet<String> commandIds) {
+//    this(id, balance, Option.of(expenses).map(HashMap::ofAll).getOrElse(HashMap.empty()), commandIds);
+//  }
+//
+//  // Custom getter for serialization
+//  @JsonGetter
+//  java.util.Map<String, Expense> getExpenses() {
+//    return expenses.toJavaMap();
+//  }
 
   @JsonIgnore
   public boolean isEmpty() {
@@ -105,7 +124,7 @@ public record Wallet(String id, BigDecimal balance, Map<String, Expense> expense
   public Wallet apply(WalletEvent event) {
     return switch (event) {
       case WalletCreated created ->
-        new Wallet(created.walletId(), created.initialBalance(), expenses, new ArrayList<>());
+        new Wallet(created.walletId(), created.initialBalance(), expenses, new LinkedHashSet<>());
       case WalletCharged charged -> {
         Expense expense = new Expense(charged.expenseId(), charged.amount());
         yield new Wallet(id, balance.subtract(charged.amount()), expenses.put(expense.expenseId(), expense), addCommandId(charged.commandId()));
@@ -118,7 +137,7 @@ public record Wallet(String id, BigDecimal balance, Map<String, Expense> expense
     };
   }
 
-  private List<String> addCommandId(String commandId) {
+  private LinkedHashSet<String> addCommandId(String commandId) {
     // To avoid infinite growth of the list with limit the size to 1000.
     // This implementation is not very efficient, so you might want to use a more dedicated data structure for it.
     // When using other collections, make sure that the state is serializable and deserializable.

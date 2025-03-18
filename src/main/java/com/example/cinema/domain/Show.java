@@ -10,6 +10,10 @@ import com.example.cinema.domain.ShowEvent.SeatReservationPaid;
 import com.example.cinema.domain.ShowEvent.SeatReserved;
 import com.example.cinema.domain.ShowEvent.ShowCreated;
 import com.example.common.Or;
+import com.example.common.VavrMapDeserializer;
+import com.example.common.VavrMapSerializer;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import io.vavr.Tuple2;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
@@ -28,7 +32,15 @@ import static com.example.cinema.domain.ShowCommandError.SHOW_ALREADY_EXISTS;
 import static com.example.common.Or.left;
 import static com.example.common.Or.right;
 
-public record Show(String id, String title, Map<Integer, Seat> seats, Map<String, Integer> pendingReservations,
+public record Show(String id, String title,
+                   @JsonSerialize(using = VavrMapSerializer.class)
+                   @JsonDeserialize(using = VavrMapDeserializer.class)
+                   Map<Integer, Seat> seats,
+                   @JsonSerialize(using = VavrMapSerializer.class)
+                   @JsonDeserialize(using = VavrMapDeserializer.class)
+                   Map<String, Integer> pendingReservations,
+                   @JsonSerialize(using = VavrMapSerializer.class)
+                   @JsonDeserialize(using = VavrMapDeserializer.class)
                    Map<String, FinishedReservation> finishedReservations) {
 
   public static Show create(ShowCreated showCreated) {

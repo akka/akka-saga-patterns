@@ -2,6 +2,16 @@
 
 This demo project demonstrates more sophisticated use of Akka components to implement a distributed system that uses both Saga flavors: choreography and orchestration. 
 
+The blog post series walks through the implementation of a seat reservation system, focusing not only on a basic 
+business 
+flow but also on the error handling and edge cases.
+
+ - [Part 1 - event choreography](https://akka.io/blog/saga-patterns-in-akka-part-1-event-choreography)
+ - [Part 2 - read models](https://akka.io/blog/saga-patterns-in-akka-part-2-read-models)
+ - [Part 3 - exactly-once delivery with deduplication](https://akka.io/blog/saga-patterns-in-akka-part-3-exactly-once-delivery-with-deduplication)
+ - [Part 4 - error handling, DLQ](https://akka.io/blog/saga-patterns-in-akka-part-4-error-handling-dlq)
+ - [Part 5 - orchestration with workflows](https://akka.io/blog/saga-patterns-in-akka-part-5-orchestration-with-workflows)
+
 ## Prerequisites
 
 - A [Akka account](https://console.akka.io/register)

@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.util.function.Predicate;
 
-import static akka.Done.done;
 import static com.example.cinema.domain.ShowCommandError.CANCELLING_CONFIRMED_RESERVATION;
 import static com.example.cinema.domain.ShowCommandError.DUPLICATED_COMMAND;
 import static com.example.cinema.domain.ShowCommandError.RESERVATION_NOT_FOUND;

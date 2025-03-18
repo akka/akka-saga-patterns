@@ -16,7 +16,7 @@ import com.example.cinema.domain.ShowEvent.ShowCreated;
 @ComponentId("show-by-reservation-view")
 public class ShowByReservationView extends View {
 
-  @Query("SELECT * FROM show_by_reservation WHERE :reservationId = ANY(reservationIds)")
+  @Query("SELECT * FROM shows WHERE :reservationId = ANY(reservationIds)")
   public QueryEffect<ShowByReservation> getShow(String reservationId) {
     return queryResult();
   }
